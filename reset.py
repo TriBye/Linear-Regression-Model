@@ -1,6 +1,5 @@
-import numpy as np
+import json
+import random
 
-a = [0,0,0,0,0,0,0,0,0,0,0,0]
-b = [0]
-np.save("a.npy", a)
-np.save("b.npy", b)
+with open("params.json", "w") as f:
+    json.dump({"bias": 0.0, "weight": random.uniform(-0.01, 0.01)}, f)

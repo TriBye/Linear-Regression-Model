@@ -1,6 +1,7 @@
 import csv
 import random
 import json
+import matplotlib.pyplot as plt
 
 try:
     with open("params.json", "r") as f:
@@ -15,12 +16,17 @@ with open("dataset.csv", "r") as f:
     dataset = [[float(x) for x in row] for row in csv.reader(f)]
 
 n = len(dataset)
-epochs = 10000
-learn_rate = 1e-5
+initial_learn_rate = 1e-2
+learn_rate = initial_learn_rate
+epsilon_rel = 1e-6
+decay_factor = 0.98
+decay_interval = 100
 
 old_mse = None
+epoch = 0
+mse_list = []
 
-for epoch in range(epochs):
+while True:
     error = []
     mse = 0.0
 
@@ -33,9 +39,7 @@ for epoch in range(epochs):
         mse += error_1 ** 2
 
     mse /= n
-
-    if epoch == 0:
-        old_mse = mse
+    mse_list.append(mse)
 
     grad_weight = 0.0
     grad_bias = 0.0
@@ -48,15 +52,29 @@ for epoch in range(epochs):
     weight += learn_rate * grad_weight
     bias += learn_rate * grad_bias
 
-    if epoch % 100 == 0 or epoch == epochs - 1:
+    if epoch % decay_interval == 0 and epoch > 0:
+        learn_rate *= decay_factor
+
+    if epoch % 100 == 0:
         print("--------------------")
         print(f"Epoch: #{epoch}")
         print(f"MSE: {mse}")
+        print(f"Lernrate: {learn_rate}")
 
-print("\n--Training--")
-print(f"Old Loss: {old_mse}")
-print(f"New Loss: {mse}")
-print(f"diff: {old_mse - mse}")
+    if old_mse is not None:
+        mse_change = abs(old_mse - mse) / abs(old_mse) if old_mse != 0 else 0.0
+        if mse_change < epsilon_rel:
+            print("Training gestoppt wegen Konvergenzbedingung.")
+            break
+
+    old_mse = mse
+    epoch += 1
 
 with open("params.json", "w") as f:
     json.dump({"bias": bias, "weight": weight}, f)
+
+plt.plot(mse_list)
+plt.xlabel("Epoche")
+plt.ylabel("Loss (MSE)")
+plt.title("Loss-Kurve während des Trainings")
+plt.show()
